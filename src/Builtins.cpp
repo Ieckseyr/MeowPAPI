@@ -150,12 +150,12 @@ std::string getServerRamBdsUsed(Player* /*p*/) {
 }
 
 std::string getServerTotalEntities(Player* /*p*/) {
-    // 避免直接使用 level->getEntities()，它需要 OwnerPtr<EntityContext> 的完整定义
-    // 此处使用 NumRemotePlayers 作为近似值（在线玩家数）
+    // 获取服务器所有已加载实体总数 (含玩家、生物、掉落物、弹射物等)
     auto level = ll::service::getLevel();
     if (!level) return "0";
     try {
-        return std::to_string(level->getNumRemotePlayers());
+        auto const& actors = level->getRuntimeActorList();
+        return std::to_string(actors.size());
     } catch (...) { return "0"; }
 }
 
@@ -391,7 +391,7 @@ std::string getDateWeekday(Player* /*p*/) {
     return std::string("星期") + weekdays[tm->tm_wday];
 }
 
-//LLMoney 经济系统集成 =====
+//LLMoney 经济系统集成
 // 参考 MeowSync 的 EconomySync 实现：通过 LoadLibraryA 直接加载 LegacyMoney.dll，
 // 使用 GetProcAddress 获取 LLMoney_Get / LLMoney_Set 导出函数。
 // LLMoney 内部使用 std::shared_mutex 保护数据，LLMoney_Get 是线程安全的；
