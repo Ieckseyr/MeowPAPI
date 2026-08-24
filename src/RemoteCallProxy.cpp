@@ -4,9 +4,10 @@
 // 使消费者插件无需直接链接 legacyremotecall。
 //
 // 本文件在 MeowPAPI_DLL target 中编译（定义 MEOWPAPI_DLL_EXPORTS），
-// 因此 meowpapi/RemoteCallAPI.h 走 DLL 模式：exportFunc 等函数通过
-// __declspec(dllimport) 直接从 LegacyRemoteCall.dll 导入。
-// RC_* 导出函数内部直接调用 lrca 原始函数，无需运行时动态解析。
+// 因此 meowpapi/RemoteCallAPI.h 走 DLL 模式：exportFunc 等函数经
+// src/lse/LseBridge.cpp 运行时挂载 lrca（软依赖）。RC_* 导出函数内部
+// 调用 RemoteCall:: 转发层：lrca 未挂载时安全降级（export 返回 false /
+// import 返回空回调），挂载后行为与直接调用 lrca 完全一致。
 //
 // 消费者插件侧（不定义 MEOWPAPI_DLL_EXPORTS）通过 DllLoader 解析 RC_*
 // 到 p_* 函数指针，间接调用 lrca。
@@ -28,7 +29,7 @@ __declspec(dllexport) bool RC_ExportFunc(
     RemoteCall::CallbackFn callback,
     void* handle
 ) {
-    // DLL 模式下 exportFunc 是 __declspec(dllimport) 从 lrca 导入，直接调用
+    // 经 LseBridge 转发到 lrca（未挂载时安全降级返回 false）
     return RemoteCall::exportFunc(nameSpace, funcName, std::move(callback), handle);
 }
 

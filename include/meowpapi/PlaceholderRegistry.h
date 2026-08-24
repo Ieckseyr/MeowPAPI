@@ -54,6 +54,14 @@ struct PlaceholderEntry {
     bool                                                     hasParams = false;
 };
 
+// 占位符概要信息（/meowpapi list 指令与诊断用，不含回调）
+struct PlaceholderInfo {
+    std::string     name;
+    std::string     pluginName;
+    PlaceholderType type;
+    bool            hasParams = false; // 带参占位符（GMLIB <param> 模板）
+};
+
 // 占位符注册表单例
 // MeowSidebar 持有主注册表；其他插件通过 RemoteCall 访问。
 class PlaceholderRegistry {
@@ -161,6 +169,8 @@ public:
     bool                     hasPlaceholder(std::string const& name);
     std::vector<std::string> listPlaceholders();
     std::vector<std::string> listPlaceholdersByPlugin(std::string const& pluginName);
+    // 占位符概要列表（按名字排序，/meowpapi list 分页展示用）
+    std::vector<PlaceholderInfo> listPlaceholderInfos();
 
     // 设置回退解析器（当本地注册表找不到占位符时调用）
     // 用于 BEPAPI 双向兼容：BepApiBridge 设置此解析器，回退到 BEPAPI 查询

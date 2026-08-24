@@ -514,6 +514,11 @@ bool DllLoader::paramPapiSupported() const {
     return mLoaded && mFuncs.registerPlaceholderWithParams != nullptr;
 }
 
+uint64_t DllLoader::loadedBuildTimestamp() const {
+    if (!mLoaded || !mFuncs.getBuildTimestamp) return 0;
+    return mFuncs.getBuildTimestamp();
+}
+
 uint64_t DllLoader::registerCallback(std::function<std::string(Player*)> cb) {
     uint64_t id = mNextCallbackId++;
     mCallbacks.emplace(id, std::move(cb));

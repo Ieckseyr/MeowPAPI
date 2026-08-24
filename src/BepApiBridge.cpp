@@ -8,7 +8,7 @@
 namespace meowpapi {
 
 bool isBepApiAvailable() {
-    // DLL 模式下 hasFunc 通过 __declspec(dllimport) 直接调用 lrca
+    // 经 LseBridge 转发到 lrca（未挂载时返回 false，BEPAPI 兼容层不安装）
     return RemoteCall::hasFunc("BEPlaceholderAPI", "GetValue");
 }
 

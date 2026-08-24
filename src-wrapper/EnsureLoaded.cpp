@@ -20,4 +20,20 @@ bool isDeployer() {
     return DllLoader::getInstance().isDeployed();
 }
 
+uint32_t loadedAbiVersion() {
+    return DllLoader::getInstance().loadedAbiVersion();
+}
+
+uint32_t loadedAbiFeatures() {
+    return DllLoader::getInstance().loadedAbiFeatures();
+}
+
+bool paramPapiSupported() {
+    return DllLoader::getInstance().paramPapiSupported();
+}
+
+uint64_t loadedBuildTimestamp() {
+    return DllLoader::getInstance().loadedBuildTimestamp();
+}
+
 } // namespace meowpapi

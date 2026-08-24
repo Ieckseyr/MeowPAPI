@@ -23,6 +23,8 @@
 //       仅当消费者本身就是 MeowPAPI 的宿主(如 MeowSidebar)时,才需调用 initAsServer() 等。
 #pragma once
 
+#include <cstdint>
+
 namespace meowpapi {
 
 // 确保 MeowPAPI.dll 已加载并完成自动初始化。
@@ -36,5 +38,15 @@ bool ensureLoaded();
 // 非部署者只需清理自己的 RemoteCall 命名空间。
 // 线程安全。
 bool isDeployer();
+
+//===== 运行时 ABI 查询（消费者诊断/能力检测用，须在 ensureLoaded() 之后调用）=====
+// 已加载 MeowPAPI.dll 的 ABI 版本（0xMMmmpp，如 0x010100 = 1.1.0；旧版 DLL 返回 0）
+uint32_t loadedAbiVersion();
+// 已加载 MeowPAPI.dll 的功能位掩码（MEOWPAPI_ABI_FEATURE_* 组合；旧版 DLL 返回 0）
+uint32_t loadedAbiFeatures();
+// 便捷判断：运行时 DLL 是否支持带参占位符（GMLIB PAPI 兼容）
+bool paramPapiSupported();
+// 已加载 MeowPAPI.dll 的构建时间戳（PE TimeDateStamp，Unix epoch 秒；未加载返回 0）
+uint64_t loadedBuildTimestamp();
 
 } // namespace meowpapi

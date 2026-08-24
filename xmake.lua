@@ -84,12 +84,14 @@ target("MeowPAPI_DLL")
     add_files("src/MemoryOperators.cpp")
     -- LeviLamina 插件入口（独立插件模式）
     add_files("src/PluginEntry.cpp")
+    -- /meowpapi 指令（version 所有人 / list OP 自检）
+    add_files("src/Commands.cpp")
+    -- lrca 运行时可选挂载桥（软依赖：GetModuleHandleW + GetProcAddress
+    -- 解析 mangled 符号，导入表无 LegacyRemoteCall.dll）
+    add_files("src/lse/LseBridge.cpp")
 
     add_includedirs("include")
-    -- 链接 LegacyRemoteCall.lib：MeowPAPI.dll 通过 __declspec(dllimport) 硬依赖 lrca，
-    -- Windows 加载器保证 lrca 先加载，初始化时序正确
-    add_linkdirs("../ZXPanel/lib")
-    add_links("LegacyRemoteCall")
+    add_includedirs("src")
     set_symbols("hidden")
 
     if is_config("target_type", "server") then

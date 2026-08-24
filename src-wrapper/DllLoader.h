@@ -114,6 +114,9 @@ public:
     uint32_t loadedAbiFeatures() const;
     // 便捷判断：运行时 DLL 是否支持带参占位符（GMLIB PAPI 兼容）
     bool paramPapiSupported() const;
+    // 已加载 DLL 的构建时间戳（PE TimeDateStamp，Unix epoch 秒；未加载返回 0）
+    // 消费者可据此与嵌入时间戳比较，诊断部署的 DLL 是否过期
+    uint64_t loadedBuildTimestamp() const;
 
     // 是否已自动初始化（消费者插件可据此跳过重复初始化）
     bool isAutoInitialized() const { return mAutoInitialized; }

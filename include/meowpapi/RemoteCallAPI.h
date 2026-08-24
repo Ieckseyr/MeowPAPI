@@ -3,9 +3,12 @@
 // 这是 LegacyRemoteCall 的 RemoteCallAPI.h 的修改版本，支持两种模式：
 //
 // 1. DLL 模式（编译 MeowPAPI.dll 时，定义 MEOWPAPI_DLL_EXPORTS）：
-//    通过 __declspec(dllimport) 直接从 LegacyRemoteCall.dll 导入函数。
-//    MeowPAPI.dll 硬依赖 lrca，导入表包含 LegacyRemoteCall.dll，
-//    Windows 加载器保证 lrca 先于 MeowPAPI.dll 加载，初始化时序正确。
+//    运行时经 src/lse/LseBridge.cpp 挂载 lrca（GetModuleHandleW +
+//    GetProcAddress 解析 mangled 符号），MeowPAPI.dll 导入表不包含
+//    LegacyRemoteCall.dll（软依赖）。lrca 未加载时所有调用安全降级：
+//    exportFunc 返回 false / importFunc 返回空回调 / hasFunc 返回 false。
+//    导出/导入闭环的最小必需集（exportFunc+importFunc）任一解析失败
+//    即判定 lrca 不可用，LSE 兼容层整体禁用，原生 C++ 占位符 API 不受影响。
 //
 // 2. 代理模式（编译消费者插件时，不定义 MEOWPAPI_DLL_EXPORTS）：
 //    通过函数指针调用 MeowPAPI.dll 中导出的 RC_* 代理函数，
@@ -29,20 +32,12 @@
 
 ///////////////////////////////////////////////////////
 // Remote Call API (MeowPAPI 双模式版本)
-// DLL 模式：__declspec(dllimport) 直接从 lrca 导入（MeowPAPI.dll 用）
+// DLL 模式：经 LseBridge 运行时挂载 lrca（MeowPAPI.dll 用，软依赖）
 // 代理模式：通过 MeowPAPI.dll 的 RC_* 代理转发（消费者插件用）
 // 用法与原版完全相同：
 //   RemoteCall::exportAs("TestNameSpace", "strSize", [](std::string const& arg) -> int { return arg.size(); });
 //   auto strSize = RemoteCall::importAs<int(std::string const&)>("TestNameSpace", "strSize");
 /////////////////////////////////////////////////////
-
-// 双模式宏：DLL 模式下 REMOTE_CALL_API = __declspec(dllimport)，
-// 代理模式下为空（使用 inline + p_* 函数指针）
-#ifdef MEOWPAPI_DLL_EXPORTS
-#define REMOTE_CALL_API __declspec(dllimport)
-#else
-#define REMOTE_CALL_API
-#endif
 
 namespace RemoteCall {
 
@@ -505,23 +500,24 @@ ValueType pack(T val) {
 using CallbackFn = std::function<ValueType(std::vector<ValueType>)>;
 
 #ifdef MEOWPAPI_DLL_EXPORTS
-// ===== DLL 模式：MeowPAPI.dll 内部直接从 LegacyRemoteCall.dll 导入 =====
-// __declspec(dllimport) 让编译器生成间接调用（通过导入表），链接时需要
-// LegacyRemoteCall.lib。MeowPAPI.dll 导入表硬依赖 lrca，Windows 加载器
-// 保证 lrca 先加载，ll_mod_load 初始化时序正确，无需运行时动态解析。
-REMOTE_CALL_API extern CallbackFn const EMPTY_FUNC;
-REMOTE_CALL_API bool                    exportFunc(
+// ===== DLL 模式：MeowPAPI.dll 经 LseBridge 运行时挂载 lrca（软依赖） =====
+// 函数定义在 src/lse/LseBridge.cpp：GetModuleHandleW + GetProcAddress 解析
+// lrca 导出的 mangled 符号后转发。未挂载（meowpapi::lse::attach() 失败）时
+// 安全降级：exportFunc 返回 false / importFunc 返回 EMPTY_FUNC / hasFunc
+// 返回 false。导入表不含 LegacyRemoteCall.dll，与 lrca 加载顺序无关。
+extern CallbackFn const EMPTY_FUNC;
+bool                    exportFunc(
                        std::string const& nameSpace,
                        std::string const& funcName,
                        CallbackFn&&       callback,
                        void*              handle = ll::sys_utils::getCurrentModuleHandle()
                    );
-REMOTE_CALL_API CallbackFn const& importFunc(std::string const& nameSpace, std::string const& funcName);
-REMOTE_CALL_API bool              hasFunc(std::string const& nameSpace, std::string const& funcName);
-REMOTE_CALL_API bool              removeFunc(std::string const& nameSpace, std::string const& funcName);
-REMOTE_CALL_API int               removeNameSpace(std::string const& nameSpace);
-REMOTE_CALL_API int               removeFuncs(std::vector<std::pair<std::string, std::string>>& funcs);
-REMOTE_CALL_API void              _onCallError(std::string const& msg, void* handle = ll::sys_utils::getCurrentModuleHandle());
+CallbackFn const& importFunc(std::string const& nameSpace, std::string const& funcName);
+bool              hasFunc(std::string const& nameSpace, std::string const& funcName);
+bool              removeFunc(std::string const& nameSpace, std::string const& funcName);
+int               removeNameSpace(std::string const& nameSpace);
+int               removeFuncs(std::vector<std::pair<std::string, std::string>>& funcs);
+void              _onCallError(std::string const& msg, void* handle = ll::sys_utils::getCurrentModuleHandle());
 #else
 // ===== 代理模式：消费者插件通过 p_* 函数指针调用 MeowPAPI.dll 的 RC_* 代理 =====
 // 这些指针在 DllLoader::load() 时通过 GetProcAddress 初始化。

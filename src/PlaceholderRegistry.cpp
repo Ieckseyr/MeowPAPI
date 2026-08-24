@@ -499,9 +499,14 @@ bool PlaceholderRegistry::resolvePlaceholderInternal(
             if (tplName.find('<') == std::string::npos) continue;
             if (!matchSlotTemplate(tplName, name, slotParams)) continue;
             if (skipRemote && entry.mainThreadOnly) return false;
-            // 槽位提取的参数与显式参数合并（显式优先）
+            // 槽位提取的参数与显式参数合并（显式优先）。
+            // 键双格式注入：剥尖括号键（"score"）与带尖括号键（"<score>"，
+            // GMLIB 原版语义，JS 回调 params['<score>'] 取值）同时写入
             nlohmann::json j = nlohmann::json::object();
-            for (auto const& [k, v] : slotParams) j[k] = v;
+            for (auto const& [k, v] : slotParams) {
+                j[k]             = v;
+                j["<" + k + ">"] = v;
+            }
             if (paramsJson && !paramsJson->empty()) {
                 try {
                     auto explicit_ = nlohmann::json::parse(*paramsJson);
@@ -595,6 +600,9 @@ bool PlaceholderRegistry::translatePapiExpression(
     if (name.empty()) return false;
 
     // 解析参数串：顶层 ',' 分段，段内第一个顶层 '=' 分 key/value
+    // 键双格式注入：原始键（"<number>"，GMLIB 原版语义，JS 回调
+    // params['<number>'] 取值）与 normalizeKey 剥尖括号键（"number"）
+    // 同时写入——两种写法均兼容
     nlohmann::json params = nlohmann::json::object();
     size_t         pos    = 0;
     while (pos < paramsPart.size()) {
@@ -605,10 +613,12 @@ bool PlaceholderRegistry::translatePapiExpression(
         if (seg.empty()) continue;
         size_t eq = findTopLevelAny(seg, 0, "=");
         if (eq == std::string::npos) continue;
-        std::string key = normalizeKey(unescape(seg.substr(0, eq)));
-        std::string val = unescape(translateNested(seg.substr(eq + 1)));
+        std::string rawKey = unescape(seg.substr(0, eq));
+        std::string key    = normalizeKey(rawKey);
+        std::string val    = unescape(translateNested(seg.substr(eq + 1)));
         if (key.empty()) continue;
-        params[key] = val;
+        params[key]    = val;
+        if (rawKey != key) params[rawKey] = val;
     }
 
     std::string paramsJson = params.dump();
@@ -748,6 +758,23 @@ std::vector<std::string> PlaceholderRegistry::listPlaceholdersByPlugin(std::stri
     for (auto const& [name, entry] : mPlaceholders) {
         if (entry.pluginName == pluginName) result.push_back(name);
     }
+    return result;
+}
+
+std::vector<PlaceholderInfo> PlaceholderRegistry::listPlaceholderInfos() {
+    std::vector<PlaceholderInfo> result;
+    result.reserve(mPlaceholders.size());
+    for (auto const& [name, entry] : mPlaceholders) {
+        PlaceholderInfo info;
+        info.name       = name;
+        info.pluginName = entry.pluginName;
+        info.type       = entry.type;
+        info.hasParams  = entry.hasParams;
+        result.push_back(std::move(info));
+    }
+    // 按名字排序，保证分页浏览顺序稳定
+    std::sort(result.begin(), result.end(),
+        [](PlaceholderInfo const& a, PlaceholderInfo const& b) { return a.name < b.name; });
     return result;
 }
 

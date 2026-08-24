@@ -189,7 +189,7 @@ MEOWPAPI_API int MeowPAPI_ListPlaceholdersByPlugin(const char* pluginName, char*
 
 //===== 服务端：RemoteCall 导出 =====
 MEOWPAPI_API void MeowPAPI_ExportRemoteCallApi(void) {
-    // DLL 模式下 lrca 在 MeowPAPI.dll 加载前已就绪（硬依赖），直接导出
+    // 内部经 LseBridge 软依赖挂载 lrca：已加载立即导出，否则 ServerStarted 兜底
     meowpapi::exportRemoteCallApi();
 }
 
