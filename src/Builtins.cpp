@@ -1,5 +1,4 @@
 // Builtins.cpp - 内置原生占位符实现
-//
 // 移植自 CoralFans (MSPT/TPS via ProfilerLite) 和 BetterSidebar (服务器/玩家/时间变量)
 #include "meowpapi/Builtins.h"
 #include "meowpapi/PlaceholderRegistry.h"
@@ -537,7 +536,7 @@ void registerBuiltinPlaceholders() {
     reg.registerPlayerPlaceholderRemote("MeowSidebar", "pl.money",           getPlMoney);
     reg.registerPlayerPlaceholderRemote("MeowSidebar", "pl.money_formatted", getPlMoneyFormatted);
 
-    // 时间级占位符（静态缓存，1秒更新）=====
+    // 时间级占位符（静态缓存，1秒更新）
     reg.registerStaticPlaceholder("MeowSidebar", "date.h",        getDateHour,     1000);
     reg.registerStaticPlaceholder("MeowSidebar", "date.m",        getDateMinute,   1000);
     reg.registerStaticPlaceholder("MeowSidebar", "date.s",        getDateSecond,   1000);

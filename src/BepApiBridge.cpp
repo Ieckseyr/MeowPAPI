@@ -1,14 +1,14 @@
 // BepApiBridge.cpp - BEPlaceholderAPI 双向兼容层实现
 #include "meowpapi/BepApiBridge.h"
 #include "meowpapi/PlaceholderRegistry.h"
-
-#include <RemoteCallAPI.h>
+#include "meowpapi/RemoteCallAPI.h"
 
 #include "mc/world/actor/player/Player.h"
 
 namespace meowpapi {
 
 bool isBepApiAvailable() {
+    // DLL 模式下 hasFunc 通过 __declspec(dllimport) 直接调用 lrca
     return RemoteCall::hasFunc("BEPlaceholderAPI", "GetValue");
 }
 

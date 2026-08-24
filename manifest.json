@@ -1,0 +1,8 @@
+{
+    "name": "MeowPAPI",
+    "entry": "MeowPAPI.dll",
+    "version": "1.0.0",
+    "type": "native",
+    "description": "PlaceholderAPI registry and RemoteCall proxy",
+    "dependencies": [{"name": "LegacyRemoteCall"}]
+}

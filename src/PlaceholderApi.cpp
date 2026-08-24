@@ -1,9 +1,9 @@
 // PlaceholderApi.cpp - 统一 PAPI 入口实现
 #include "meowpapi/PlaceholderApi.h"
+#include "meowpapi/DllExports.h"
 #include "meowpapi/PlaceholderRegistry.h"
 #include "meowpapi/RemoteCallBridge.h"
-
-#include <RemoteCallAPI.h>
+#include "meowpapi/RemoteCallAPI.h"
 
 #include "mc/world/actor/player/Player.h"
 
@@ -20,6 +20,8 @@ void PlaceholderApi::initAsServer() {
 }
 
 void PlaceholderApi::initAsClient() {
+    // 如果已初始化为服务端模式，不覆盖（共享 DLL 场景下 MeowSidebar 先初始化）
+    if (mInitialized && mIsServer) return;
     mIsServer     = false;
     mInitialized  = true;
 }
@@ -123,6 +125,61 @@ bool PlaceholderApi::registerStaticPlaceholder(
         bool(std::string const&, std::string const&, std::string const&, std::string const&, int)
     >(REMOTE_NS, "registerStaticPlaceholder");
     return registerFn(pluginName, name, callbackNs, callbackFn, updateIntervalMs);
+}
+
+bool PlaceholderApi::registerServerPlaceholderWithParams(
+    std::string const& pluginName, std::string const& name, PlaceholderParamCallback cb
+) {
+    if (mIsServer) {
+        return PlaceholderRegistry::getInstance().registerServerPlaceholderWithParams(
+            pluginName, name, std::move(cb)
+        );
+    }
+    // 客户端模式：导出带参回调到 RemoteCall，再经 RemoteCall 注册到服务端
+    if (!isRemoteAvailable()) return false;
+    std::string callbackNs = pluginName;
+    std::string callbackFn = "papi_srvp_" + name;
+    RemoteCall::exportAs(callbackNs, callbackFn,
+        [cb = std::move(cb)](std::string const& paramsJson) -> std::string {
+            return cb(nullptr, paramsJson);
+        }
+    );
+    auto registerFn = RemoteCall::importAs<
+        bool(std::string const&, std::string const&, std::string const&, std::string const&)
+    >(REMOTE_NS, "registerServerPlaceholderWithParams");
+    return registerFn(pluginName, name, callbackNs, callbackFn);
+}
+
+bool PlaceholderApi::registerPlayerPlaceholderWithParams(
+    std::string const& pluginName, std::string const& name, PlaceholderParamCallback cb
+) {
+    if (mIsServer) {
+        return PlaceholderRegistry::getInstance().registerPlayerPlaceholderWithParams(
+            pluginName, name, std::move(cb)
+        );
+    }
+    if (!isRemoteAvailable()) return false;
+    std::string callbackNs = pluginName;
+    std::string callbackFn = "papi_plp_" + name;
+    RemoteCall::exportAs(callbackNs, callbackFn,
+        [cb = std::move(cb)](Player* player, std::string const& paramsJson) -> std::string {
+            return cb(player, paramsJson);
+        }
+    );
+    auto registerFn = RemoteCall::importAs<
+        bool(std::string const&, std::string const&, std::string const&, std::string const&)
+    >(REMOTE_NS, "registerPlayerPlaceholderWithParams");
+    return registerFn(pluginName, name, callbackNs, callbackFn);
+}
+
+uint32_t PlaceholderApi::getAbiVersion() {
+    // DLL 侧：直接返回编译期宏（单一来源，与 MeowPAPI_GetAbiVersion 一致）
+    return MEOWPAPI_ABI_VERSION;
+}
+
+bool PlaceholderApi::isParamPapiSupported() {
+    // DLL 侧：本 DLL 编译期已含带参功能，恒为 true
+    return true;
 }
 
 } // namespace meowpapi

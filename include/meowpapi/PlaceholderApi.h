@@ -67,6 +67,34 @@ public:
         int                  updateIntervalMs
     );
 
+    // 带参数注册（GMLIB PAPI 兼容，add-only 扩展）
+    // name 可含 <param> 插槽模板（如 "title_score_rank_<score>_<title>_<number>"），
+    // 翻译时按 _ 分段匹配实际占位符名提取参数；回调通过 paramsJson 收到参数
+    // （JSON 对象字符串，如 {"score":"zxsc","title":"在线榜","number":"10"}）
+    // 翻译格式：${papi:title_score_rank_<score>_<title>_<number>,<score>=zxsc,...}
+    bool registerServerPlaceholderWithParams(
+        std::string const&        pluginName,
+        std::string const&        name,
+        PlaceholderParamCallback  cb
+    );
+    bool registerPlayerPlaceholderWithParams(
+        std::string const&        pluginName,
+        std::string const&        name,
+        PlaceholderParamCallback  cb
+    );
+
+    //===== ABI 查询 =====
+    // DLL 侧实现：返回本 DLL 编译期的 MEOWPAPI_ABI_VERSION（始终为编译期宏值）
+    // wrapper 侧实现：返回已加载 MeowPAPI.dll 运行时报告的 ABI 版本
+    //                 （旧版 DLL 无 ABI 导出返回 0，消费者据此降级）
+    // 编译期常量用 MeowPAPI_GetAbiVersion() C API 或 MEOWPAPI_ABI_VERSION 宏获取
+    uint32_t getAbiVersion();
+
+    // 便捷判断：当前运行环境是否支持带参占位符（GMLIB PAPI 兼容）
+    // DLL 侧：恒为 true（本 DLL 编译期已含此功能）
+    // wrapper 侧：查询已加载 DLL 的 ABI 功能位（旧版 DLL 返回 false）
+    bool isParamPapiSupported();
+
 private:
     PlaceholderApi() = default;
     bool mIsServer      = false;

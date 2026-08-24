@@ -43,4 +43,8 @@ std::string remoteGetValue(std::string const& name);
 std::string remoteGetValueWithPlayer(std::string const& name, Player* player);
 bool        remoteHasPlaceholder(std::string const& name);
 
+// 通过玩家名调用（DLL 导出层使用）
+std::string remoteTranslateStringWithPlayerName(std::string const& str, std::string const& playerName);
+std::string remoteGetValueWithPlayerName(std::string const& name, std::string const& playerName);
+
 } // namespace meowpapi

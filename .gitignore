@@ -1,0 +1,44 @@
+# xmake build artifacts
+.xmake/
+build/
+bin/
+
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.sln
+
+# Compiled files
+*.obj
+*.lib
+*.dll
+*.exp
+*.pdb
+*.ilk
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Generated embedded headers (run 'xmake build MeowPAPI_DLL' to regenerate)
+embedded_dll.h
+embedded_manifest.h
+embedded_build_info.h
+
+# Deployed DLL copy / reference downloads / legacy auto-deploy EXE (root-anchored:
+# bare "MeowPAPI/" would also match include/meowpapi/ on case-insensitive Windows)
+/MeowPAPI/
+/MeowSidebar-main/
+/MeowPAPI.zip
+/src-auto_deploy/
